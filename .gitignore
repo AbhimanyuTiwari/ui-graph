@@ -1,0 +1,6 @@
+node_modules/
+dist/
+.uigraph/
+uigraph-out/
+*.log
+.DS_Store

@@ -1,0 +1,32 @@
+{
+  "name": "uigraph",
+  "version": "0.1.0",
+  "description": "Deterministic UI knowledge graph for AI test agents: map routes, screens, elements and actions from source or compiled code, verify them in a real browser, query them for tokens-cheap test generation.",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "uigraph": "./dist/cli/index.js"
+  },
+  "dependencies": {
+    "@angular/compiler": "^22.2.3",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "commander": "^15.0.0",
+    "playwright": "^1.64.1",
+    "ts-morph": "^28.0.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
+  }
+}
