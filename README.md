@@ -1,12 +1,14 @@
 # uigraph
 
-**A deterministic UI knowledge graph for AI test agents.**
+**Stop guessing locators. Give your test agent a map.**
 
-uigraph reads your web app — source **or** compiled code — and builds a graph of
-every route, screen, element, action and transition. AI coding agents
-(Claude Code, Codex, Cursor, Copilot, Gemini CLI) query that graph through MCP
-or the CLI instead of taking browser snapshots, so they write Playwright tests
-**without guessing locators or flows, and with a fraction of the tokens**.
+uigraph builds a deterministic UI knowledge graph from your web app — source
+**or** compiled code — covering every route, screen, element, action, and
+transition. Claude Code, Codex, Cursor, Copilot, and Gemini CLI query that
+graph through MCP or the CLI instead of re-reading the DOM, so they write
+Playwright tests from verified role and label locators.
+
+No `data-testid` required. No model API key. Destructive controls are never clicked.
 
 ```
 uigraph build . --adapter angular
@@ -24,10 +26,17 @@ uigraph impact --files src/app/user-detail.ts   # what a diff touches
 
 ## Why
 
-Agents that test UIs by looking at them re-read the DOM on every step: slow,
-token-hungry, and the guessing is where wrong tests come from. Your code
-already states what exists. uigraph extracts it once, verifies it against the
-running app, and answers questions in under ~1k tokens.
+Agents that test UIs by looking at them re-read the DOM on every step. That is
+slow, and the guess is where wrong tests come from. Your code already states
+what exists. uigraph extracts it once, verifies it against the running app,
+and answers `path`, `screen`, and `explain` from the graph.
+
+Use it when you:
+
+- generate Playwright tests from Angular or Next.js without inventing selectors
+- want role, label, and `formControlName` locators instead of `nth()` and CSS
+- need a crawler that observes the live app and refuses delete, pay, send, and logout
+- want Cursor, Claude Code, or any MCP client to query the UI instead of snapshotting it
 
 ## How it works
 
@@ -92,8 +101,7 @@ npx uigraph mcp              # or add as an MCP server to your agent
 v0.1. Angular source and compiled bundles (with source maps, or a reduced
 scan without them), Next.js app and pages routes, ng-bootstrap and Angular
 Material dialog profiles, crawler, CLI, MCP, verify queue, and a Graphify-style
-export (`graph.json`, `GRAPH_REPORT.md`, `graph.html`). Token numbers are in
-`BENCHMARKS.md`.
+export (`graph.json`, `GRAPH_REPORT.md`, `graph.html`).
 
 ## License
 

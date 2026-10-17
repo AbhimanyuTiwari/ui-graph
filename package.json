@@ -1,15 +1,38 @@
 {
   "name": "uigraph",
   "version": "0.1.0",
-  "description": "Deterministic UI knowledge graph for AI test agents: map routes, screens, elements and actions from source or compiled code, verify them in a real browser, query them for tokens-cheap test generation.",
+  "description": "Deterministic UI knowledge graph for AI test agents. Map routes, screens, and locators from Angular or Next.js, verify them in a real browser, and query them from Cursor, Claude Code, or any MCP client.",
+  "author": "Abhimanyu Tiwari <tiwariabhimanyu001@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AbhimanyuTiwari/ui-graph.git"
+  },
+  "homepage": "https://github.com/AbhimanyuTiwari/ui-graph",
+  "bugs": {
+    "url": "https://github.com/AbhimanyuTiwari/ui-graph/issues"
+  },
+  "keywords": [
+    "playwright",
+    "ui-testing",
+    "e2e",
+    "test-automation",
+    "locators",
+    "accessibility",
+    "angular",
+    "nextjs",
+    "mcp",
+    "ai-agents",
+    "cursor",
+    "claude-code",
+    "knowledge-graph",
+    "static-analysis"
+  ],
   "main": "index.js",
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "tsc -p tsconfig.build.json"
   },
-  "keywords": [],
-  "author": "",
   "license": "MIT",
   "type": "module",
   "bin": {
