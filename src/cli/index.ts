@@ -18,6 +18,7 @@ import {
   mergeCmd,
   pathCmd,
   reportCmd,
+  exportCmd,
   screenCmd,
   taskNextCmd,
   taskReviewCmd,
@@ -68,8 +69,10 @@ program
   .command('build [dir]')
   .description('static extraction -> graph')
   .option('--adapter <name>', 'framework adapter', 'angular')
+  .option('--bundles <list>', 'comma-separated compiled bundles')
+  .option('--source-maps', 'restore sourcesContent before extracting a bundle')
   .option('--out <path>', 'output graph path', '.uigraph/graph')
-  .action((dir: string | undefined, opts: { adapter: string; out: string }) =>
+  .action((dir: string | undefined, opts: { adapter: string; out: string; bundles?: string; sourceMaps?: boolean }) =>
     run((c) => buildCmd(c, dir, opts))(),
   );
 
@@ -126,6 +129,12 @@ program
   .description('which graph facts changed files make stale')
   .requiredOption('--files <list>', 'comma-separated changed files')
   .action((opts: { files: string }) => run((c) => impactCmd(c, opts))());
+
+program
+  .command('export')
+  .description('write graph.json, GRAPH_REPORT.md, and graph.html')
+  .option('--out <dir>', 'output directory', '.uigraph/export')
+  .action((opts: { out: string }) => run((c) => exportCmd(c, opts))());
 
 program
   .command('report')

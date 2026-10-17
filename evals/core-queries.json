@@ -1,1 +1,332 @@
-{}
+{
+  "getScreen /login default": {
+    "screen": {
+      "route": "/login",
+      "state": "default"
+    },
+    "preconditions": [],
+    "elements": [
+      {
+        "id": "element_01878bcb9db5",
+        "role": "textbox",
+        "name": "Email",
+        "locator": {
+          "strategy": "label",
+          "name": "Email",
+          "unique": true
+        },
+        "rendered": "page.getByLabel('Email')",
+        "confidence": "verified"
+      },
+      {
+        "id": "element_cc84c43ecf4a",
+        "role": "button",
+        "name": "Log in",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Log in",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Log in' })",
+        "confidence": "verified",
+        "actions": [
+          "/users"
+        ]
+      }
+    ]
+  },
+  "getScreen /users default": {
+    "screen": {
+      "route": "/users",
+      "state": "default"
+    },
+    "preconditions": [
+      "AuthGuard"
+    ],
+    "elements": [
+      {
+        "id": "element_5eb293b992b2",
+        "role": "link",
+        "name": "Alice",
+        "locator": {
+          "strategy": "role",
+          "role": "link",
+          "name": "Alice",
+          "unique": true,
+          "scope": [
+            {
+              "strategy": "role",
+              "role": "listitem",
+              "filterText": "Alice"
+            }
+          ]
+        },
+        "rendered": "page.getByRole('listitem').filter({ hasText: 'Alice' }).getByRole('link', { name: 'Alice' })",
+        "confidence": "verified",
+        "actions": [
+          "/users/:id"
+        ]
+      },
+      {
+        "id": "element_471f40d8c36a",
+        "role": "button",
+        "name": "Delete user",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Delete user",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Delete user' })",
+        "confidence": "verified",
+        "actions": [
+          "ConfirmDeleteDialog"
+        ]
+      },
+      {
+        "id": "element_019aad055742",
+        "role": "button",
+        "name": "Edit",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Edit",
+          "unique": false
+        },
+        "rendered": "page.getByRole('button', { name: 'Edit' })",
+        "confidence": "ambiguous"
+      },
+      {
+        "id": "element_af1d4afb7803",
+        "role": "button",
+        "name": "Filters",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Filters",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Filters' })",
+        "confidence": "verified",
+        "actions": [
+          "FiltersDialog"
+        ]
+      }
+    ]
+  },
+  "getScreen /users modal:filters": {
+    "screen": {
+      "route": "/users",
+      "state": "modal:filters"
+    },
+    "preconditions": [
+      "AuthGuard"
+    ],
+    "elements": [
+      {
+        "id": "element_5d1bba1cfa4e",
+        "role": "button",
+        "name": "Apply",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Apply",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Apply' })",
+        "confidence": "verified",
+        "actions": [
+          "apply filters"
+        ]
+      }
+    ]
+  },
+  "getScreen /users/:id default": {
+    "screen": {
+      "route": "/users/:id",
+      "state": "default"
+    },
+    "preconditions": [
+      "AuthGuard"
+    ],
+    "elements": []
+  },
+  "pathTo /users/:id": {
+    "target": {
+      "route": "/users/:id",
+      "state": "default"
+    },
+    "steps": [
+      {
+        "do": "goto",
+        "url": "/login"
+      },
+      {
+        "do": "click",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Log in",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Log in' })"
+      },
+      {
+        "do": "click",
+        "locator": {
+          "strategy": "role",
+          "role": "link",
+          "name": "Alice",
+          "unique": true,
+          "scope": [
+            {
+              "strategy": "role",
+              "role": "listitem",
+              "filterText": "Alice"
+            }
+          ]
+        },
+        "rendered": "page.getByRole('listitem').filter({ hasText: 'Alice' }).getByRole('link', { name: 'Alice' })"
+      }
+    ],
+    "preconditions": [
+      "AuthGuard"
+    ]
+  },
+  "pathTo /users#modal:filters": {
+    "target": {
+      "route": "/users",
+      "state": "modal:filters"
+    },
+    "steps": [
+      {
+        "do": "goto",
+        "url": "/login"
+      },
+      {
+        "do": "click",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Log in",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Log in' })"
+      },
+      {
+        "do": "click",
+        "locator": {
+          "strategy": "role",
+          "role": "button",
+          "name": "Filters",
+          "unique": true
+        },
+        "rendered": "page.getByRole('button', { name: 'Filters' })"
+      }
+    ],
+    "preconditions": [
+      "AuthGuard"
+    ]
+  },
+  "pathTo /users#modal:confirmDelete": null,
+  "pathTo /users/:id from /users": {
+    "target": {
+      "route": "/users/:id",
+      "state": "default"
+    },
+    "steps": [
+      {
+        "do": "goto",
+        "url": "/users"
+      },
+      {
+        "do": "click",
+        "locator": {
+          "strategy": "role",
+          "role": "link",
+          "name": "Alice",
+          "unique": true,
+          "scope": [
+            {
+              "strategy": "role",
+              "role": "listitem",
+              "filterText": "Alice"
+            }
+          ]
+        },
+        "rendered": "page.getByRole('listitem').filter({ hasText: 'Alice' }).getByRole('link', { name: 'Alice' })"
+      }
+    ],
+    "preconditions": [
+      "AuthGuard"
+    ]
+  },
+  "locatorsFor alice": [
+    {
+      "id": "element_5eb293b992b2",
+      "role": "link",
+      "name": "Alice",
+      "locator": {
+        "strategy": "role",
+        "role": "link",
+        "name": "Alice",
+        "unique": true,
+        "scope": [
+          {
+            "strategy": "role",
+            "role": "listitem",
+            "filterText": "Alice"
+          }
+        ]
+      },
+      "rendered": "page.getByRole('listitem').filter({ hasText: 'Alice' }).getByRole('link', { name: 'Alice' })",
+      "confidence": "verified",
+      "actions": [
+        "/users/:id"
+      ]
+    }
+  ],
+  "locatorsFor edit": [
+    {
+      "id": "element_019aad055742",
+      "role": "button",
+      "name": "Edit",
+      "locator": {
+        "strategy": "role",
+        "role": "button",
+        "name": "Edit",
+        "unique": false
+      },
+      "rendered": "page.getByRole('button', { name: 'Edit' })",
+      "confidence": "ambiguous"
+    }
+  ],
+  "actionsOf Delete user": [
+    {
+      "type": "dialog",
+      "safety": "destructive",
+      "detail": "ConfirmDeleteDialog"
+    }
+  ],
+  "explain /users": "route /users (extracted), defined in src/app/users.component.ts:8. Edges: HAS_SCREEN, NAVIGATES_TO, REQUIRES.",
+  "explain Delete user": "element Delete user (verified), defined in src/app/users.component.ts. Edges: CONTAINS, TRIGGERS.",
+  "staleCheck src/app/users.component.ts": {
+    "staleNodeIds": [
+      "action_034b237538e4",
+      "action_b7b3f64fdbf1",
+      "action_f18259a627d1",
+      "action_f76e3c844d21",
+      "element_019aad055742",
+      "element_471f40d8c36a",
+      "element_5d1bba1cfa4e",
+      "element_5eb293b992b2",
+      "element_af1d4afb7803",
+      "route_129f16adff65"
+    ],
+    "staleRoutes": [
+      "/users"
+    ],
+    "summary": "10 stale nodes on /users"
+  }
+}

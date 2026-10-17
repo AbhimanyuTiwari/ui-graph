@@ -10,6 +10,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { makeQueryApi } from '../../src/core/query';
+import { estimateTokens } from '../../src/core/tokens';
 import { buildFixtureGraph, ids, USERS_FILE } from './fixture';
 
 const goldenPath = fileURLToPath(new URL('../../evals/core-queries.json', import.meta.url));
@@ -51,6 +52,12 @@ describe('golden core queries (evals/core-queries.json)', () => {
       expect(JSON.parse(JSON.stringify(actual[key] ?? null))).toEqual(golden[key]);
     });
   }
+
+  it('keeps every golden answer under the 1k-token budget', () => {
+    for (const [key, value] of Object.entries(actual)) {
+      expect(estimateTokens(JSON.stringify(value)), key).toBeLessThan(1000);
+    }
+  });
 
   it('proves pathTo never routes through the destructive delete action', () => {
     // The confirm-delete modal exists in the graph with an OPENS edge from the

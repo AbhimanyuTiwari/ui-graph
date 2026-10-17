@@ -111,6 +111,7 @@ export async function createServices(projectDir: string): Promise<Services> {
     'createQuery',
     'buildQuery',
     'makeQuery',
+    'makeQueryApi',
     'queryApi',
   ]);
   if (queryFactory && loadGraphFn) {
@@ -127,6 +128,12 @@ export async function createServices(projectDir: string): Promise<Services> {
   const angularMod = await tryImport('../adapters/angular/index.js');
   if (angularMod) {
     const candidates = [angularMod['angularAdapter'], angularMod['adapter'], angularMod['default'], ...Object.values(angularMod)];
+    const found = candidates.find(isAdapter);
+    if (found) adapters[found.name] = found;
+  }
+  const nextMod = await tryImport('../adapters/next/index.js');
+  if (nextMod) {
+    const candidates = [nextMod['nextAdapter'], nextMod['adapter'], nextMod['default'], ...Object.values(nextMod)];
     const found = candidates.find(isAdapter);
     if (found) adapters[found.name] = found;
   }

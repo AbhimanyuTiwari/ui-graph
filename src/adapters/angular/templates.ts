@@ -36,6 +36,7 @@ import type {
 } from '../../types.js';
 import { stableId } from '../../core/ids.js';
 import { type ComponentInfo, type Ctx, addEdge, addNode, squash } from './model.js';
+import { hostScope } from './profiles.js';
 
 // -- small AST helpers --------------------------------------------------------
 
@@ -158,7 +159,7 @@ function collectLabels(nodes: TmplAstNode[], labels: Map<string, string>): void 
     } else if (n instanceof TmplAstForLoopBlock) {
       collectLabels(n.children, labels);
     } else if (n instanceof TmplAstSwitchBlock) {
-      for (const c of n.cases) collectLabels(c.children, labels);
+      for (const group of n.groups) collectLabels(group.children, labels);
     }
   }
 }
@@ -170,6 +171,7 @@ interface WalkCtx {
   /** State label the current branch maps to, when inside a state branch. */
   stateLabel?: string;
   collection?: { keyHint?: string; rowTag?: string; rowFilter?: string };
+  overlays?: LocatorDescriptor[];
 }
 
 /** Build the best LocatorDescriptor per the ladder, scoped to the component. */
@@ -184,6 +186,7 @@ function buildLocator(
 ): LocatorDescriptor {
   const scope: LocatorDescriptor[] = [];
   if (selector) scope.push({ strategy: 'css', css: selector });
+  for (const overlay of walk.overlays ?? []) scope.push(overlay);
   if (walk.collection?.rowTag) {
     // Collection item scope: "the <rowTag> whose text contains <filter>".
     // rowFilter is the row's binding expression — a pattern the caller fills in.
@@ -286,9 +289,11 @@ function extractComponentTemplate(
         ensureState(stateLabelFor(cond, staticText(node.children)));
       }
     } else if (node instanceof TmplAstSwitchBlock) {
-      for (const c of node.cases) {
-        const cond = exprSource(c.expression);
-        ensureState(cond ? `case:${squash(cond)}` : 'case:default');
+      for (const group of node.groups) {
+        for (const c of group.cases) {
+          const cond = exprSource(c.expression);
+          ensureState(cond ? `case:${squash(cond)}` : 'case:default');
+        }
       }
     }
   }
@@ -406,7 +411,9 @@ function extractComponentTemplate(
         } else {
           emitElement(node, walk, formSubmitMethods);
         }
-        visit(node.children, walk, submit);
+        const host = hostScope(node.name);
+        const nextWalk = host ? { ...walk, overlays: [...(walk.overlays ?? []), host] } : walk;
+        visit(node.children, nextWalk, submit);
       } else if (node instanceof TmplAstTemplate) {
         // *ngIf / *ngFor desugared templates.
         const ngIf = templateAttr(node, 'ngIf');
@@ -467,14 +474,17 @@ function extractComponentTemplate(
           visit(node.empty.children, { ...walk, stateLabel: 'empty' }, formSubmitMethods);
         }
       } else if (node instanceof TmplAstSwitchBlock) {
-        for (const c of node.cases) {
-          const cond = exprSource(c.expression);
+        for (const group of node.groups) {
+          const labels = group.cases.map((c) => exprSource(c.expression) ?? 'default');
+          const cond = labels.join(' | ');
           visit(
-            c.children,
+            group.children,
             {
               ...walk,
-              conditions: [...walk.conditions, `@switch case ${cond ?? 'default'}`],
-              stateLabel: cond ? `case:${squash(cond)}` : 'case:default',
+              conditions: [...walk.conditions, `@switch case ${cond}`],
+              stateLabel: labels.some((l) => l !== 'default')
+                ? `case:${squash(labels.filter((l) => l !== 'default').join(' | '))}`
+                : 'case:default',
             },
             formSubmitMethods,
           );

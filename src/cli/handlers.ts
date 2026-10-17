@@ -20,6 +20,7 @@ import {
   submitReview,
   writeConfig,
 } from '../verify/queue.js';
+import { exportGraph } from '../core/export.js';
 import type { Services } from './services.js';
 import { DEFAULT_GRAPH_PATH } from './services.js';
 
@@ -58,7 +59,7 @@ function resolveOut(ctx: HandlerCtx, out: string): string {
 export async function buildCmd(
   ctx: HandlerCtx,
   dir: string | undefined,
-  opts: { adapter?: string; out?: string },
+  opts: { adapter?: string; out?: string; bundles?: string; sourceMaps?: boolean },
 ): Promise<CmdResult> {
   const name = opts.adapter ?? 'angular';
   const adapter = ctx.services.adapters[name];
@@ -66,7 +67,11 @@ export async function buildCmd(
     return err(`unknown adapter "${name}" (available: ${Object.keys(ctx.services.adapters).join(', ') || 'none'})`);
   }
   const projectDir = path.resolve(ctx.projectDir, dir ?? '.');
-  const graph = await adapter.extract(projectDir);
+  const bundles = opts.bundles?.split(',').map((item) => item.trim()).filter(Boolean);
+  const graph = await adapter.extract(projectDir, {
+    ...(bundles && bundles.length > 0 ? { bundles } : {}),
+    ...(opts.sourceMaps !== undefined ? { sourceMaps: opts.sourceMaps } : {}),
+  });
   const out = resolveOut(ctx, opts.out ?? DEFAULT_GRAPH_PATH);
   await ctx.services.saveGraph(out, graph);
   const data = { out, nodes: graph.nodes.length, edges: graph.edges.length, app: graph.app };
@@ -319,6 +324,21 @@ export async function reportCmd(ctx: HandlerCtx, opts: { out?: string }): Promis
     ok: true,
     data,
     text: `report -> ${out} (${hubs.length} hubs, ${unnamed.length} unnamed, ${ambiguous.length} ambiguous, ${uncoveredRoutes.length} uncovered routes; ${fmtCounts(counts)})`,
+  };
+}
+
+export async function exportCmd(ctx: HandlerCtx, opts: { out?: string }): Promise<CmdResult> {
+  let graph: Graph;
+  try {
+    graph = await ctx.services.loadGraph(graphPathOf(ctx.projectDir));
+  } catch (e) {
+    return err(`cannot load graph: ${e instanceof Error ? e.message : String(e)}`);
+  }
+  const written = exportGraph(graph, resolveOut(ctx, opts.out ?? '.uigraph/export'));
+  return {
+    ok: true,
+    data: written,
+    text: `export -> ${written.graphJson}`,
   };
 }
 

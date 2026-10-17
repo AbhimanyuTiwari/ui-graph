@@ -9,7 +9,10 @@ or the CLI instead of taking browser snapshots, so they write Playwright tests
 **without guessing locators or flows, and with a fraction of the tokens**.
 
 ```
-uigraph build . --adapter angular     # static pass: compiler-accurate, zero AI
+uigraph build . --adapter angular
+uigraph build ./dist --adapter angular --bundles main.js --source-maps
+uigraph build . --adapter next
+uigraph export --out .uigraph/export
 uigraph crawl --url http://localhost:4200 --from-graph
 uigraph merge --static .uigraph/graph --runtime .uigraph/graph-runtime --out .uigraph/graph
 
@@ -86,10 +89,11 @@ npx uigraph mcp              # or add as an MCP server to your agent
 
 ## Status
 
-v0.1. Angular adapter (v9+ source; compiled via source maps), framework-
-agnostic crawler, CLI, MCP server, verify queue. Next: Next.js adapter,
-ng-bootstrap/Material overlay profiles, Graphify-compatible export.
-See `BENCHMARKS.md` for measured token numbers.
+v0.1. Angular source and compiled bundles (with source maps, or a reduced
+scan without them), Next.js app and pages routes, ng-bootstrap and Angular
+Material dialog profiles, crawler, CLI, MCP, verify queue, and a Graphify-style
+export (`graph.json`, `GRAPH_REPORT.md`, `graph.html`). Token numbers are in
+`BENCHMARKS.md`.
 
 ## License
 
