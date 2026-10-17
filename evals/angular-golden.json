@@ -1,0 +1,73 @@
+{
+  "app": { "name": "angular-fixture-app", "framework": "angular" },
+  "routes": {
+    "count": 7,
+    "fullPaths": ["/", "/login", "/orders", "/orders", "/settings", "/users", "/users/:id"],
+    "redirect": { "fullPath": "/", "redirectTo": "login" },
+    "lazyParent": { "fullPath": "/orders", "lazy": true, "componentName": null },
+    "lazyChild": {
+      "fullPath": "/orders",
+      "componentName": "OrdersListComponent",
+      "confidence": "inferred"
+    },
+    "loadComponent": {
+      "fullPath": "/settings",
+      "lazy": true,
+      "componentName": "SettingsComponent"
+    },
+    "paramNames": { "/users/:id": ["id"] }
+  },
+  "guards": {
+    "guardedFullPaths": ["/users", "/users/:id"],
+    "precondition": { "type": "auth", "detail": "authGuard" }
+  },
+  "loginButton": {
+    "locator": { "strategy": "role", "role": "button", "name": "Sign in" }
+  },
+  "emailField": {
+    "locator": { "strategy": "label", "name": "Email" },
+    "attrs": { "formcontrolname": "email" }
+  },
+  "editButton": {
+    "name": "Edit",
+    "collection": { "keyHint": "user.id" }
+  },
+  "unnamedButton": { "component": "UserListComponent", "handler": "refresh" },
+  "deleteAction": {
+    "handler": "UserDetailComponent.onDelete",
+    "safety": "destructive",
+    "api": { "method": "DELETE", "urlPattern": "/api/users/:id" }
+  },
+  "saveAction": {
+    "handler": "UserDetailComponent.save",
+    "safety": "mutate",
+    "api": { "method": "PUT", "urlPattern": "/api/users/:id" }
+  },
+  "serviceHop": {
+    "handler": "UserListComponent.ngOnInit",
+    "api": { "method": "GET", "urlPattern": "/api/users" },
+    "confidence": "extracted"
+  },
+  "loginFlow": {
+    "handler": "LoginComponent.onSubmit",
+    "api": { "method": "POST", "urlPattern": "/api/login" },
+    "navigateTo": "/users"
+  },
+  "screenStates": {
+    "/users": ["default", "empty", "modal:CreateUserDialog"],
+    "/users/:id": ["default", "error"],
+    "/login": ["default"]
+  },
+  "modal": { "route": "/users", "state": "modal:CreateUserDialog" },
+  "externalAction": { "handler": "SettingsComponent.openDocs", "type": "external" },
+  "forms": {
+    "LoginComponent": {
+      "email": ["required", "email"],
+      "password": ["required"]
+    },
+    "UserDetailComponent": {
+      "name": ["required"],
+      "email": ["required", "email"]
+    }
+  }
+}

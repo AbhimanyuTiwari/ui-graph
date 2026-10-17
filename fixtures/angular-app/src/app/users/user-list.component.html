@@ -1,0 +1,17 @@
+<h1>Users</h1>
+<button (click)="openCreate()">New user</button>
+<button (click)="refresh()">
+  <svg viewBox="0 0 24 24"><path d="M0 0h24v24H0z"></path></svg>
+</button>
+@if (users.length === 0) {
+  <p>No users yet</p>
+} @else {
+  <ul>
+    @for (user of users; track user.id) {
+      <li>
+        <span>{{ user.name }}</span>
+        <button (click)="openEdit(user)">Edit</button>
+      </li>
+    }
+  </ul>
+}

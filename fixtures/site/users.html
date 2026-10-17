@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Users</title>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Home</a>
+    <a href="users.html">Users</a>
+  </nav>
+  <h1>Users</h1>
+  <ul id="user-list">
+    <li>Alice Anderson <a href="user.html?id=1">Edit</a></li>
+    <li>Bob Brown <a href="user.html?id=2">Edit</a></li>
+    <li>Cara Chen <a href="user.html?id=3">Edit</a></li>
+  </ul>
+  <button id="new-user" type="button">New user</button>
+  <button id="load-more" type="button">Load more</button>
+  <!-- icon-only button: no accessible name on purpose -->
+  <button id="refresh" type="button" class="icon-only"><span aria-hidden="true">&#x21bb;</span></button>
+
+  <dialog id="create-dialog" aria-labelledby="create-heading">
+    <h2 id="create-heading">Create user</h2>
+    <label for="new-name">Name</label>
+    <input id="new-name" type="text">
+    <button id="cancel-create" type="button">Cancel</button>
+  </dialog>
+
+  <script>
+    const dlg = document.getElementById('create-dialog');
+    document.getElementById('new-user').addEventListener('click', () => dlg.showModal());
+    document.getElementById('cancel-create').addEventListener('click', () => dlg.close());
+    document.getElementById('load-more').addEventListener('click', async () => {
+      const res = await fetch('/api/users');
+      const users = await res.json();
+      const li = document.createElement('li');
+      li.textContent = 'Loaded user ' + users.length;
+      document.getElementById('user-list').appendChild(li);
+    });
+  </script>
+</body>
+</html>

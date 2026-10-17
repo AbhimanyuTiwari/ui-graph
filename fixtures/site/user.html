@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>User detail</title>
+</head>
+<body>
+  <nav>
+    <a href="users.html">Back to users</a>
+  </nav>
+  <h1>User detail</h1>
+  <form id="user-form">
+    <label for="name">Name</label>
+    <input id="name" type="text">
+    <input id="notes" type="text" placeholder="Search notes">
+    <button id="save" type="button">Save</button>
+    <button id="delete" type="button">Delete user</button>
+  </form>
+
+  <script>
+    document.getElementById('save').addEventListener('click', () => {
+      fetch('/api/users/1', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: document.getElementById('name').value }),
+      });
+    });
+    document.getElementById('delete').addEventListener('click', () => {
+      fetch('/api/users/1', { method: 'DELETE' });
+    });
+  </script>
+</body>
+</html>
