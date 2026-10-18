@@ -46,6 +46,10 @@ export function readConfig(projectDir: string): UigraphConfig {
       return {
         baseUrl: typeof o['baseUrl'] === 'string' ? o['baseUrl'] : undefined,
         graphPath: typeof o['graphPath'] === 'string' ? o['graphPath'] : undefined,
+        src:
+          Array.isArray(o['src']) && o['src'].every((s) => typeof s === 'string')
+            ? (o['src'] as string[])
+            : undefined,
       };
     }
   } catch {

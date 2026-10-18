@@ -2,7 +2,7 @@
  * Render structured LocatorDescriptors to Playwright code strings.
  * Locators are stored as data and rendered at the edge — never stored as code.
  */
-import type { LocatorDescriptor } from '../types';
+import type { LocatorDescriptor } from '../types.js';
 
 /** Quote a string as a single-quoted JS literal, escaping \ and '. */
 function jsStr(s: string): string {

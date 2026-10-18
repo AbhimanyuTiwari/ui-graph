@@ -51,6 +51,8 @@ export interface UigraphConfig {
   baseUrl?: string;
   /** Where the merged graph lives, relative to the project dir. */
   graphPath?: string;
+  /** Source globs/dirs the adapter scans, relative to the built project dir. */
+  src?: string[];
 }
 
 export const DEFAULT_GRAPH_PATH = '.uigraph/graph';

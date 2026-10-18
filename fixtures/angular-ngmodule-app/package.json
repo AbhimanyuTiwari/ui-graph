@@ -1,0 +1,5 @@
+{
+  "name": "angular-ngmodule-fixture",
+  "private": true,
+  "dependencies": { "@angular/core": "^16.0.0", "@angular/router": "^16.0.0" }
+}

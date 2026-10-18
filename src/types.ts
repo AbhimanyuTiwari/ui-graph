@@ -246,6 +246,13 @@ export interface ExtractOptions {
   /** Compiled mode inputs. */
   bundles?: string[];
   sourceMaps?: boolean;
+  /**
+   * Source globs or directories (relative to the project dir) to scan. When
+   * omitted the adapter tries its conventional roots (src/, then app/).
+   */
+  src?: string[];
+  /** Receives non-fatal findings (unresolved lazy routes, skipped inputs). */
+  onWarning?: (message: string) => void;
 }
 
 export interface FrameworkAdapter {

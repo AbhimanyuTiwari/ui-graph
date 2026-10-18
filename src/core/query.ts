@@ -54,7 +54,10 @@ function indexGraph(graph: Graph): Indexes {
 }
 
 function routeOf(ix: Indexes, fullPath: string): RouteNode | undefined {
-  return ix.routes.find((r) => r.fullPath === fullPath && !r.redirectTo);
+  // A layout route and its empty-path child share a fullPath; the one that
+  // renders a component is the screen.
+  const matches = ix.routes.filter((r) => r.fullPath === fullPath && !r.redirectTo);
+  return matches.find((r) => r.componentName) ?? matches[0];
 }
 
 function screenOf(ix: Indexes, routeId: string, state: string): ScreenNode | undefined {

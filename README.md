@@ -96,6 +96,25 @@ npx uigraph install          # registers the agent skill (--project for repo-loc
 npx uigraph mcp              # or add as an MCP server to your agent
 ```
 
+## Project layout and routing patterns
+
+- Source roots: scans `src/` then `app/` by default. Use `--src <dir-or-glob>`
+  (repeatable) or `"src": [...]` in `.uigraph/config.json` for anything else.
+  `*.spec.ts` and `*.d.ts` are skipped.
+- Routes are found from `RouterModule.forRoot/forChild` (inline arrays or
+  variables, including ones imported from a sibling file), `provideRouter`, and
+  `Routes`-typed consts. Lazy `loadChildren` targets are followed into the
+  NgModules they import (the usual `FooModule` + `FooRoutingModule` split).
+- A build that finds no routes fails instead of saving an empty graph, and
+  anything it could not resolve (path aliases, missing lazy targets) is printed
+  as a warning.
+
+## Known limits
+
+- Hybrid apps: AngularJS pages (`ng-click`, `$routeProvider`, ui-router) are not
+  extracted. The graph covers the Angular side only, so treat it as partial.
+- Lazy targets imported through tsconfig path aliases are reported, not followed.
+
 ## Status
 
 v0.1. Angular source and compiled bundles (with source maps, or a reduced

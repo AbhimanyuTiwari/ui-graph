@@ -19,9 +19,9 @@ import type {
   ProbePlan,
   ProbeStep,
   Verdict,
-} from '../types';
-import { DESTRUCTIVE_TEXT, ProbePlanSchema } from '../schemas';
-import { buildLocator } from './locate';
+} from '../types.js';
+import { DESTRUCTIVE_TEXT, ProbePlanSchema } from '../schemas.js';
+import { buildLocator } from './locate.js';
 
 const STEP_TIMEOUT_MS = 5_000;
 const EXPECT_TIMEOUT_MS = 2_000;

@@ -2,7 +2,7 @@
  * Angular adapter. Static extraction only: ts-morph for classes and routes,
  * @angular/compiler for templates. No network and no AI.
  */
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -139,13 +139,37 @@ function restoreFromSourceMaps(projectDir: string, bundles: string[]): string | 
   return root;
 }
 
-function extractSource(projectDir: string): Graph {
+/** Conventional source roots, tried in order when the caller gives none. */
+const DEFAULT_SOURCE_ROOTS = ['src', 'app'];
+const SOURCE_EXCLUDES = ['!**/*.spec.ts', '!**/*.d.ts', '!**/node_modules/**'];
+
+/** A bare directory means "every .ts under it"; anything else is already a glob. */
+function toGlob(root: string, entry: string): string {
+  const abs = path.resolve(root, entry);
+  const isDir = existsSync(abs) && statSync(abs).isDirectory();
+  return isDir ? path.join(abs, '**/*.ts') : abs;
+}
+
+function addSources(project: Project, root: string, src: string[] | undefined, warn: (m: string) => void): void {
+  const attempts = (src && src.length > 0 ? [src] : DEFAULT_SOURCE_ROOTS.map((r) => [r])).map((entries) =>
+    entries.map((e) => toGlob(root, e)),
+  );
+  for (const globs of attempts) {
+    const added = project.addSourceFilesAtPaths([...globs, ...SOURCE_EXCLUDES.map((e) => path.join(root, e))]);
+    if (added.length > 0) return;
+  }
+  const tried = attempts.flat().map((g) => path.relative(root, g) || g);
+  warn(`no TypeScript sources matched (tried: ${tried.join(', ')}); pass --src <dir-or-glob>`);
+}
+
+function extractSource(projectDir: string, options?: ExtractOptions): Graph {
   const project = new Project({
     skipAddingFilesFromTsConfig: true,
     compilerOptions: { strict: false, skipLibCheck: true },
   });
   const root = path.resolve(projectDir);
-  project.addSourceFilesAtPaths(path.join(root, 'src/**/*.ts'));
+  const warn = options?.onWarning ?? (() => {});
+  addSources(project, root, options?.src, warn);
 
   const ctx: Ctx = {
     projectDir: root,
@@ -156,6 +180,7 @@ function extractSource(projectDir: string): Graph {
     components: new Map(),
     routes: [],
     handlers: [],
+    warn,
   };
 
   loadComponents(ctx);
@@ -197,14 +222,14 @@ export const angularAdapter: FrameworkAdapter = {
       const restored = restoreFromSourceMaps(projectDir, bundles);
       if (restored) {
         try {
-          return extractSource(restored);
+          return extractSource(restored, options);
         } finally {
           rmSync(restored, { recursive: true, force: true });
         }
       }
     }
     if (bundles.length > 0) return extractBundle(projectDir, bundles, uigraphVersion());
-    return extractSource(projectDir);
+    return extractSource(projectDir, options);
   },
 };
 

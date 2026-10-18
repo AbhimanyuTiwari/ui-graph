@@ -6,8 +6,8 @@
  */
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { edgeKey } from '../types';
-import type { Graph, GraphEdge, GraphNode, RouteNode, ScreenNode } from '../types';
+import { edgeKey } from '../types.js';
+import type { Graph, GraphEdge, GraphNode, RouteNode, ScreenNode } from '../types.js';
 
 /** Route fullPath -> file slug: '/'→'_', ':'→'', '' → 'root'. */
 export function routeSlug(fullPath: string): string {
@@ -46,6 +46,24 @@ function readJson<T>(path: string): T {
  * everything reachable from those screens via CONTAINS/TRIGGERS edges.
  * Unowned nodes are shared.
  */
+/**
+ * File slug per route id. Routes can share a fullPath (a layout route and its
+ * empty-path child) or collapse to the same slug ('/a/b' vs '/a_b'); later
+ * ones get their id appended so no route file overwrites another.
+ */
+function slugsFor(routes: RouteNode[]): Map<string, string> {
+  const slugs = new Map<string, string>();
+  const taken = new Set<string>();
+  const ordered = [...routes].sort((a, b) => a.fullPath.localeCompare(b.fullPath) || a.id.localeCompare(b.id));
+  for (const route of ordered) {
+    const base = routeSlug(route.fullPath);
+    const slug = taken.has(base) ? `${base}~${route.id}` : base;
+    taken.add(slug);
+    slugs.set(route.id, slug);
+  }
+  return slugs;
+}
+
 export function assignOwners(graph: Graph): Map<string, string> {
   const owner = new Map<string, string>();
   const outgoing = new Map<string, GraphEdge[]>();
@@ -108,7 +126,8 @@ export function saveGraph(dir: string, graph: Graph): void {
   const owner = assignOwners(graph);
   const routes = nodes
     .filter((n): n is RouteNode => n.kind === 'route')
-    .sort((a, b) => a.fullPath.localeCompare(b.fullPath));
+    .sort((a, b) => a.fullPath.localeCompare(b.fullPath) || a.id.localeCompare(b.id));
+  const slugs = slugsFor(routes);
 
   mkdirSync(dir, { recursive: true });
   rmSync(join(dir, 'routes'), { recursive: true, force: true });
@@ -120,7 +139,7 @@ export function saveGraph(dir: string, graph: Graph): void {
     app: graph.app,
     builtAt: graph.builtAt,
     fileHashes: graph.fileHashes,
-    routes: routes.map((r) => ({ id: r.id, fullPath: r.fullPath, slug: routeSlug(r.fullPath) })),
+    routes: routes.map((r) => ({ id: r.id, fullPath: r.fullPath, slug: slugs.get(r.id) ?? routeSlug(r.fullPath) })),
   };
   writeJson(join(dir, 'index.json'), index);
 
@@ -133,7 +152,7 @@ export function saveGraph(dir: string, graph: Graph): void {
       nodes: nodes.filter((n) => owner.get(n.id) === route.id),
       edges: edges.filter((e) => edgeOwner(e) === route.id),
     };
-    writeJson(join(dir, 'routes', `${routeSlug(route.fullPath)}.json`), file);
+    writeJson(join(dir, 'routes', `${slugs.get(route.id) ?? routeSlug(route.fullPath)}.json`), file);
   }
 
   const shared: PartFile = {

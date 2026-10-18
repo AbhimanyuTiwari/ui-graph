@@ -30,7 +30,7 @@
   "main": "index.js",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit",
     "build": "tsc -p tsconfig.build.json"
   },
   "license": "MIT",

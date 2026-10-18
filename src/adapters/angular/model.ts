@@ -57,6 +57,8 @@ export interface Ctx {
   components: Map<string, ComponentInfo>;
   routes: RouteNode[];
   handlers: HandlerRef[];
+  /** Non-fatal findings, surfaced to the user by the build command. */
+  warn: (message: string) => void;
 }
 
 const strength = (c: Confidence): number => {

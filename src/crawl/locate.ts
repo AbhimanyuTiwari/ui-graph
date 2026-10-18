@@ -4,7 +4,7 @@
  * Descriptors are structured data — never code strings, never positional.
  */
 import type { Locator, Page } from 'playwright';
-import type { LocatorDescriptor } from '../types';
+import type { LocatorDescriptor } from '../types.js';
 
 type AriaRole = Parameters<Locator['getByRole']>[0];
 

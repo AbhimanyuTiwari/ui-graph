@@ -40,11 +40,11 @@ import type {
   LocatorDescriptor,
   RouteNode,
   ScreenNode,
-} from '../types';
-import { SCHEMA_VERSION, edgeKey } from '../types';
-import { DESTRUCTIVE_TEXT } from '../schemas';
-import { contentHash, stableId } from '../core/ids';
-import { buildLocator } from './locate';
+} from '../types.js';
+import { SCHEMA_VERSION, edgeKey } from '../types.js';
+import { DESTRUCTIVE_TEXT } from '../schemas.js';
+import { contentHash, stableId } from '../core/ids.js';
+import { buildLocator } from './locate.js';
 
 export interface CrawlOptions {
   baseUrl: string;

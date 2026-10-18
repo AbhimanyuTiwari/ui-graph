@@ -20,39 +20,77 @@ import type { Confidence, PreconditionNode, RouteNode } from '../../types.js';
 import { stableId } from '../../core/ids.js';
 import { type Ctx, addEdge, addNode, joinRoutePath, paramNamesOf, rel } from './model.js';
 
+type RouteArrayKind = 'root' | 'child';
+
 interface RouteArrayCandidate {
   file: SourceFile;
   array: ArrayLiteralExpression;
-  viaForChild: boolean;
+  /** child = registered via forChild (reached through its parent); root = entry point. */
+  kind: RouteArrayKind;
+}
+
+const ROUTER_REGISTRATIONS: Record<string, RouteArrayKind> = {
+  'RouterModule.forRoot': 'root',
+  'RouterModule.forChild': 'child',
+  provideRouter: 'root',
+};
+
+/** `const xs = [...]` declared in this file, by name. */
+function arrayDeclaredAs(name: string, file: SourceFile | undefined): ArrayLiteralExpression | undefined {
+  const init = file?.getVariableDeclaration(name)?.getInitializer();
+  return init && Node.isArrayLiteralExpression(init) ? init : undefined;
+}
+
+/**
+ * Every route array in a file: arrays handed to forRoot/forChild/provideRouter
+ * (inline or by variable name) plus `Routes`-typed consts. A forChild
+ * registration wins over the `Routes` type, so a feature module's own array is
+ * never mistaken for an entry point.
+ */
+function routeArraysIn(file: SourceFile): RouteArrayCandidate[] {
+  const found = new Map<string, RouteArrayCandidate>();
+  const add = (array: ArrayLiteralExpression, kind: RouteArrayKind): void => {
+    const owner = array.getSourceFile();
+    const key = `${owner.getFilePath()}:${array.getPos()}`;
+    const prev = found.get(key);
+    if (!prev || kind === 'child') found.set(key, { file: owner, array, kind });
+  };
+
+  for (const call of file.getDescendantsOfKind(SyntaxKind.CallExpression)) {
+    const kind = ROUTER_REGISTRATIONS[call.getExpression().getText()];
+    const arg = call.getArguments()[0];
+    if (!kind || !arg) continue;
+    if (Node.isArrayLiteralExpression(arg)) add(arg, kind);
+    else if (Node.isIdentifier(arg)) {
+      // A same-file const, or one imported from a sibling `*.routes.ts` file.
+      const name = arg.getText();
+      const declared = arrayDeclaredAs(name, file) ?? arrayDeclaredAs(name, importedFileOf(file, name));
+      if (declared) add(declared, kind);
+    }
+  }
+  for (const decl of file.getVariableDeclarations()) {
+    const init = decl.getInitializer();
+    if (decl.getTypeNode()?.getText() === 'Routes' && init && Node.isArrayLiteralExpression(init)) {
+      add(init, 'root');
+    }
+  }
+  return [...found.values()].sort((x, y) => x.array.getPos() - y.array.getPos());
 }
 
 /** All array literals that look like route declarations, project-wide. */
 function findRouteArrays(ctx: Ctx): RouteArrayCandidate[] {
-  const out: RouteArrayCandidate[] = [];
-  for (const file of sortedFiles(ctx)) {
-    // `const xs: Routes = [...]` (exported or local).
-    for (const decl of file.getVariableDeclarations()) {
-      const typeText = decl.getTypeNode()?.getText();
-      const init = decl.getInitializer();
-      if (typeText === 'Routes' && init && Node.isArrayLiteralExpression(init)) {
-        out.push({ file, array: init, viaForChild: isRegisteredViaForChild(decl.getName(), file) });
-      }
-    }
+  // The same array can be seen from two files (declared in one, registered in
+  // another); a forChild registration anywhere makes it a child everywhere.
+  const byArray = new Map<string, RouteArrayCandidate>();
+  for (const candidate of sortedFiles(ctx).flatMap(routeArraysIn)) {
+    const key = `${candidate.file.getFilePath()}:${candidate.array.getPos()}`;
+    if (byArray.get(key)?.kind !== 'child') byArray.set(key, candidate);
   }
-  return out;
+  return [...byArray.values()];
 }
 
 function sortedFiles(ctx: Ctx): SourceFile[] {
   return ctx.project.getSourceFiles().sort((a, b) => a.getFilePath().localeCompare(b.getFilePath()));
-}
-
-/** Is this variable passed to RouterModule.forChild(...) in the same file? */
-function isRegisteredViaForChild(varName: string, file: SourceFile): boolean {
-  return file.getDescendantsOfKind(SyntaxKind.CallExpression).some((call) => {
-    const expr = call.getExpression().getText();
-    if (expr !== 'RouterModule.forChild') return false;
-    return call.getArguments().some((a) => a.getText() === varName);
-  });
 }
 
 /** Files that are targets of a loadChildren/loadComponent dynamic import. */
@@ -110,6 +148,58 @@ export function ensureComponentNode(ctx: Ctx, className: string): string {
     source: 'static',
   });
   return id;
+}
+
+const MAX_MODULE_IMPORT_DEPTH = 3;
+
+/** Identifiers listed in the `imports: [...]` of the @NgModule classes in a file. */
+function ngModuleImports(file: SourceFile, exportName: string | undefined): string[] {
+  const names: string[] = [];
+  for (const cls of file.getClasses()) {
+    if (exportName && cls.getName() !== exportName) continue;
+    const arg = cls.getDecorator('NgModule')?.getArguments()[0];
+    if (!arg || !Node.isObjectLiteralExpression(arg)) continue;
+    const imports = arg.getProperty('imports');
+    const init = imports && Node.isPropertyAssignment(imports) ? imports.getInitializer() : undefined;
+    if (!init || !Node.isArrayLiteralExpression(init)) continue;
+    for (const el of init.getElements()) if (Node.isIdentifier(el)) names.push(el.getText());
+  }
+  return names;
+}
+
+/** File that a relative named import of `name` points at, if it is in the project. */
+function importedFileOf(file: SourceFile, name: string): SourceFile | undefined {
+  for (const decl of file.getImportDeclarations()) {
+    if (!decl.getNamedImports().some((n) => (n.getAliasNode()?.getText() ?? n.getName()) === name)) continue;
+    const resolved = resolveImport(file, decl.getModuleSpecifierValue());
+    return resolved ? file.getProject().getSourceFile(resolved) : undefined;
+  }
+  return undefined;
+}
+
+/**
+ * Route arrays a lazy-loaded NgModule contributes: those in its own file plus
+ * the forChild arrays of the routing modules it imports (the usual
+ * `FooModule` imports `FooRoutingModule` split).
+ */
+function lazyRouteArrays(
+  ctx: Ctx,
+  file: SourceFile,
+  exportName: string | undefined,
+  depth = 0,
+  seen = new Set<string>(),
+): ArrayLiteralExpression[] {
+  if (seen.has(file.getFilePath())) return [];
+  seen.add(file.getFilePath());
+  const own = routeArraysIn(file).filter((c) => depth === 0 || c.kind === 'child');
+  if (own.length > 0) ctx.parsedFiles.add(file.getFilePath());
+  const arrays = own.map((c) => c.array);
+  if (depth >= MAX_MODULE_IMPORT_DEPTH) return arrays;
+  for (const name of ngModuleImports(file, depth === 0 ? exportName : undefined)) {
+    const imported = importedFileOf(file, name);
+    if (imported) arrays.push(...lazyRouteArrays(ctx, imported, undefined, depth + 1, seen));
+  }
+  return arrays;
 }
 
 /** Walk one route object literal, emitting nodes/edges and recursing. */
@@ -222,12 +312,15 @@ function extractRoute(
     const lazyFile = resolved ? ctx.project.getSourceFile(resolved) : undefined;
     if (lazyFile) {
       ctx.parsedFiles.add(lazyFile.getFilePath());
-      for (const decl of lazyFile.getVariableDeclarations()) {
-        const init = decl.getInitializer();
-        if (decl.getTypeNode()?.getText() === 'Routes' && init && Node.isArrayLiteralExpression(init)) {
-          extractRouteArray(ctx, init, fullPath, 'inferred');
-        }
+      const arrays = lazyRouteArrays(ctx, lazyFile, thenExportName(text));
+      if (arrays.length === 0) {
+        ctx.warn(`lazy route "${fullPath}" -> ${rel(ctx, lazyFile.getFilePath())} declares no route array`);
       }
+      for (const array of arrays) extractRouteArray(ctx, array, fullPath, 'inferred');
+    } else {
+      ctx.warn(
+        `lazy route "${fullPath}" in ${route.file}: could not resolve ${spec ? `'${spec}'` : 'its loadChildren target'} (path alias or non-relative import?)`,
+      );
     }
   }
 }
@@ -250,10 +343,16 @@ function extractRouteArray(
  */
 export function extractRoutes(ctx: Ctx): void {
   const lazyFiles = lazyTargetFiles(ctx);
-  for (const candidate of findRouteArrays(ctx)) {
-    if (candidate.viaForChild) continue;
-    if (lazyFiles.has(candidate.file.getFilePath())) continue;
+  const candidates = findRouteArrays(ctx);
+  const roots = candidates.filter((c) => c.kind === 'root' && !lazyFiles.has(c.file.getFilePath()));
+  for (const candidate of roots) {
     ctx.parsedFiles.add(candidate.file.getFilePath());
     extractRouteArray(ctx, candidate.array, '', 'extracted');
+  }
+  if (roots.length === 0 && candidates.length > 0) {
+    const files = [...new Set(candidates.map((c) => rel(ctx, c.file.getFilePath())))].sort();
+    ctx.warn(
+      `found route arrays but no root (RouterModule.forRoot / provideRouter / top-level Routes): ${files.slice(0, 5).join(', ')}${files.length > 5 ? ', ...' : ''}`,
+    );
   }
 }

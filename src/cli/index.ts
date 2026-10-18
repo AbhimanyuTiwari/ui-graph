@@ -65,14 +65,19 @@ const run =
     }
   };
 
+function collect(value: string, previous: string[]): string[] {
+  return [...previous, value];
+}
+
 program
   .command('build [dir]')
   .description('static extraction -> graph')
   .option('--adapter <name>', 'framework adapter', 'angular')
   .option('--bundles <list>', 'comma-separated compiled bundles')
   .option('--source-maps', 'restore sourcesContent before extracting a bundle')
+  .option('--src <glob>', 'source dir or glob to scan, relative to <dir> (repeatable)', collect, [] as string[])
   .option('--out <path>', 'output graph path', '.uigraph/graph')
-  .action((dir: string | undefined, opts: { adapter: string; out: string; bundles?: string; sourceMaps?: boolean }) =>
+  .action((dir: string | undefined, opts: { adapter: string; out: string; bundles?: string; sourceMaps?: boolean; src: string[] }) =>
     run((c) => buildCmd(c, dir, opts))(),
   );
 

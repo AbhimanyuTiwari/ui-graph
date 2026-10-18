@@ -14,6 +14,7 @@ import {
   enqueueTasks,
   graphPathOf,
   nextTask,
+  readConfig,
   queueSummary,
   readTask,
   submitProbe,
@@ -59,7 +60,7 @@ function resolveOut(ctx: HandlerCtx, out: string): string {
 export async function buildCmd(
   ctx: HandlerCtx,
   dir: string | undefined,
-  opts: { adapter?: string; out?: string; bundles?: string; sourceMaps?: boolean },
+  opts: { adapter?: string; out?: string; bundles?: string; sourceMaps?: boolean; src?: string[] },
 ): Promise<CmdResult> {
   const name = opts.adapter ?? 'angular';
   const adapter = ctx.services.adapters[name];
@@ -68,14 +69,30 @@ export async function buildCmd(
   }
   const projectDir = path.resolve(ctx.projectDir, dir ?? '.');
   const bundles = opts.bundles?.split(',').map((item) => item.trim()).filter(Boolean);
+  const src = opts.src && opts.src.length > 0 ? opts.src : readConfig(ctx.projectDir).src;
+  const warnings: string[] = [];
   const graph = await adapter.extract(projectDir, {
     ...(bundles && bundles.length > 0 ? { bundles } : {}),
     ...(opts.sourceMaps !== undefined ? { sourceMaps: opts.sourceMaps } : {}),
+    ...(src && src.length > 0 ? { src } : {}),
+    onWarning: (message) => warnings.push(message),
   });
+  const routes = graph.nodes.filter((n) => n.kind === 'route').length;
+  if (routes === 0) {
+    return err(
+      `no routes found in ${projectDir}; an empty graph was not saved` +
+        (warnings.length > 0 ? `\n${warnings.map((w) => `  warning: ${w}`).join('\n')}` : '') +
+        '\n  hint: point --src at the folder holding the app code',
+    );
+  }
   const out = resolveOut(ctx, opts.out ?? DEFAULT_GRAPH_PATH);
   await ctx.services.saveGraph(out, graph);
-  const data = { out, nodes: graph.nodes.length, edges: graph.edges.length, app: graph.app };
-  return { ok: true, data, text: `built ${graph.nodes.length} nodes / ${graph.edges.length} edges -> ${out}` };
+  const data = { out, nodes: graph.nodes.length, edges: graph.edges.length, routes, app: graph.app, warnings };
+  const lines = [
+    `built ${graph.nodes.length} nodes / ${graph.edges.length} edges (${routes} routes) -> ${out}`,
+    ...warnings.map((w) => `warning: ${w}`),
+  ];
+  return { ok: true, data, text: lines.join('\n') };
 }
 
 export async function crawlCmd(

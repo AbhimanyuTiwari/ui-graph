@@ -8,6 +8,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 import { createServices } from '../../src/cli/wire';
 import { angularAdapter } from '../../src/adapters/angular';
+import { buildCmd } from '../../src/cli/handlers';
 
 const dirs: string[] = [];
 
@@ -27,3 +28,15 @@ describe('createServices wiring', () => {
     expect(() => services.query.getScreen('/users')).toThrow(/no graph loaded/);
   });
 });
+
+describe('build command', () => {
+  it('refuses to save an empty graph and says where to point --src', async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'uigraph-empty-'));
+    dirs.push(dir);
+    const services = await createServices(dir);
+    const result = await buildCmd({ services, projectDir: dir }, dir, { adapter: 'angular' });
+    expect(result.ok).toBe(false);
+    expect(result.text).toMatch(/no routes found.*--src/s);
+  });
+});
+
